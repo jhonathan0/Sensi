@@ -1,5 +1,6 @@
 -- Criação do banco de dados
-CREATE DATABASE IF NOT EXISTS game_sens_db;
+DROP DATABASE IF EXISTS game_sens_db;
+CREATE DATABASE game_sens_db;
 USE game_sens_db;
 
 -- Tabela de usuários
@@ -8,14 +9,16 @@ CREATE TABLE usuarios (
     nome VARCHAR(50) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
     senha VARCHAR(255) NOT NULL,
-    plataforma ENUM('PC', 'Console', 'Mobile') DEFAULT 'PC'
+    plataforma ENUM('PC', 'Console', 'Mobile') DEFAULT 'PC',
+    data_cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tabela de jogos
 CREATE TABLE jogos (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL UNIQUE,
-    genero VARCHAR(50)
+    genero ENUM('FPS', 'RPG', 'MOBA', 'Battle Royale', 'Esportes', 'Outro') NOT NULL,
+    data_lancamento DATE
 );
 
 -- Tabela de configurações
@@ -26,21 +29,82 @@ CREATE TABLE configuracoes (
     nome_perfil VARCHAR(50) NOT NULL,
     sensibilidade DECIMAL(5,2) DEFAULT 1.00,
     dpi_mouse INT,
-    FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
-    FOREIGN KEY (jogo_id) REFERENCES jogos(id)
+    aceleracao_mouse BOOLEAN DEFAULT FALSE,
+    invertido_eixo_y BOOLEAN DEFAULT FALSE,
+    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (jogo_id) REFERENCES jogos(id) ON DELETE CASCADE
 );
 
 -- Inserção de dados básicos
-INSERT INTO usuarios (nome, email, senha) VALUES 
-('Jogador1', 'jogador1@email.com', 'senha123'),
-('Jogador2', 'jogador2@email.com', 'senha456');
+INSERT INTO usuarios (nome, email, senha, plataforma) VALUES 
+('Jogador Profissional', 'pro@email.com', 'senha123', 'PC'),
+('Jogador Casual', 'casual@email.com', 'senha456', 'Console');
 
-INSERT INTO jogos (nome, genero) VALUES
-('CS:GO', 'FPS'),
-('Valorant', 'FPS'),
-('Fortnite', 'Battle Royale');
+INSERT INTO jogos (nome, genero, data_lancamento) VALUES
+('Counter-Strike 2', 'FPS', '2023-09-27'),
+('Valorant', 'FPS', '2020-06-02'),
+('Fortnite', 'Battle Royale', '2017-07-25'),
+('League of Legends', 'MOBA', '2009-10-27');
 
 INSERT INTO configuracoes (usuario_id, jogo_id, nome_perfil, sensibilidade, dpi_mouse) VALUES
 (1, 1, 'Competitivo', 2.50, 800),
-(1, 2, 'Padrão', 3.00, 800),
-(2, 3, 'Controle', 6.00, NULL);
+(1, 2, 'Treino', 3.00, 800),
+(2, 3, 'Diversão', 6.00, NULL),
+(1, 3, 'Rankeada', 5.50, 1200);
+
+-- CONSULTAS ÚTEIS --
+
+-- 1. Configurações de um usuário específico
+SELECT j.nome AS jogo, c.nome_perfil, c.sensibilidade, c.dpi_mouse
+FROM configuracoes c
+JOIN jogos j ON c.jogo_id = j.id
+WHERE c.usuario_id = 1;
+
+-- 2. Média de sensibilidade por jogo
+SELECT j.nome, AVG(c.sensibilidade) AS media_sensibilidade
+FROM configuracoes c
+JOIN jogos j ON c.jogo_id = j.id
+GROUP BY j.nome;
+
+-- 3. Buscar configurações para FPS
+SELECT u.nome, j.nome AS jogo, c.nome_perfil, c.sensibilidade
+FROM configuracoes c
+JOIN usuarios u ON c.usuario_id = u.id
+JOIN jogos j ON c.jogo_id = j.id
+WHERE j.genero = 'FPS';
+
+-- 4. Perfis com maior sensibilidade
+SELECT u.nome, j.nome AS jogo, c.nome_perfil, c.sensibilidade
+FROM configuracoes c
+JOIN usuarios u ON c.usuario_id = u.id
+JOIN jogos j ON c.jogo_id = j.id
+ORDER BY c.sensibilidade DESC
+LIMIT 3;
+
+-- 5. Contagem de perfis por usuário
+SELECT u.nome, COUNT(c.id) AS total_perfis
+FROM usuarios u
+LEFT JOIN configuracoes c ON u.id = c.usuario_id
+GROUP BY u.id;
+
+-- 6. Busca por nome de perfil
+SELECT j.nome AS jogo, c.nome_perfil, c.sensibilidade
+FROM configuracoes c
+JOIN jogos j ON c.jogo_id = j.id
+WHERE c.nome_perfil LIKE '%Comp%';
+
+-- 7. Configurações com mouse (DPI definido)
+SELECT DISTINCT u.nome, j.nome AS jogo
+FROM configuracoes c
+JOIN usuarios u ON c.usuario_id = u.id
+JOIN jogos j ON c.jogo_id = j.id
+WHERE c.dpi_mouse IS NOT NULL;
+
+-- 8. Últimas configurações criadas
+SELECT u.nome, j.nome AS jogo, c.nome_perfil, c.data_criacao
+FROM configuracoes c
+JOIN usuarios u ON c.usuario_id = u.id
+JOIN jogos j ON c.jogo_id = j.id
+ORDER BY c.data_criacao DESC
+LIMIT 5;

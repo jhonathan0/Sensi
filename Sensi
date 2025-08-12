@@ -1,0 +1,46 @@
+-- Criação do banco de dados
+CREATE DATABASE IF NOT EXISTS game_sens_db;
+USE game_sens_db;
+
+-- Tabela de usuários
+CREATE TABLE usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    plataforma ENUM('PC', 'Console', 'Mobile') DEFAULT 'PC'
+);
+
+-- Tabela de jogos
+CREATE TABLE jogos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL UNIQUE,
+    genero VARCHAR(50)
+);
+
+-- Tabela de configurações
+CREATE TABLE configuracoes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    usuario_id INT NOT NULL,
+    jogo_id INT NOT NULL,
+    nome_perfil VARCHAR(50) NOT NULL,
+    sensibilidade DECIMAL(5,2) DEFAULT 1.00,
+    dpi_mouse INT,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+    FOREIGN KEY (jogo_id) REFERENCES jogos(id)
+);
+
+-- Inserção de dados básicos
+INSERT INTO usuarios (nome, email, senha) VALUES 
+('Jogador1', 'jogador1@email.com', 'senha123'),
+('Jogador2', 'jogador2@email.com', 'senha456');
+
+INSERT INTO jogos (nome, genero) VALUES
+('CS:GO', 'FPS'),
+('Valorant', 'FPS'),
+('Fortnite', 'Battle Royale');
+
+INSERT INTO configuracoes (usuario_id, jogo_id, nome_perfil, sensibilidade, dpi_mouse) VALUES
+(1, 1, 'Competitivo', 2.50, 800),
+(1, 2, 'Padrão', 3.00, 800),
+(2, 3, 'Controle', 6.00, NULL);
